@@ -11,10 +11,11 @@ Everything is included inside this folder: dataset, reference papers, compressio
 ```
 uncertainty/
 ├── data/                    # 24 Kodak benchmark images (PNG)
-├── papers/                  # Foundational reference research papers (PDF)
-├── compression_methods.py   # Standalone compression methods (DFT, DCT, Wavelet, JPEG, WebP, Neural)
+├── compression_methods.py   # Standalone compression methods (DFT, DCT, DWT, JPEG, JPEG2000, WebP, Neural)
 ├── metrics.py               # Evaluation metrics: bpp (Rate), PSNR (Distortion), SSIM, LPIPS, Uncertainty (U)
-├── run_benchmark.py         # Self-contained script: inference, evaluation, summary table, and LaTeX plot
+├── run_benchmark.py         # Full quality sweep across all codec families to benchmark.csv
+├── plot_rd.py               # Generates CompressAI-style publication RD curves (results/rd_plot.png)
+├── plot_reconstructions.py  # Generates visual grid comparison on Kodak 23 at ~0.3 bpp
 ├── results/                 # Output benchmark CSV and publication figures
 └── README.md                # Documentation
 ```
@@ -23,11 +24,19 @@ uncertainty/
 
 ## 🚀 Instant Run
 
-Clone the repository and run immediately without setting external dataset paths:
+Clone the repository and run immediately:
 
 ```bash
 cd uncertainty
+
+# 1. Run full quantitative benchmark sweep on Kodak (generates results/benchmark.csv and results/rd_plot.png)
 python run_benchmark.py
+
+# 2. Re-plot Rate-Distortion curves with custom styles
+python plot_rd.py
+
+# 3. Generate 3x4 visual reconstruction quality grid on Kodak #23
+python plot_reconstructions.py
 ```
 
 The script will automatically:
