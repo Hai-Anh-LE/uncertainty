@@ -35,7 +35,7 @@ python run_benchmark.py
 # 2. Re-plot Rate-Distortion curves with custom styles
 python plot_rd.py
 
-# 3. Generate 3x4 visual reconstruction quality grid on Kodak #23
+# 3. Generate 2x5 visual reconstruction comparison grid on Kodak #23
 python plot_reconstructions.py
 ```
 
@@ -45,6 +45,23 @@ The script will automatically:
 3. Compute Rate (bpp), Distortion (PSNR), SSIM, and LPIPS.
 4. Output a clean summary table to stdout and save results to `results/benchmark.csv`.
 5. Generate a publication-quality LaTeX figure `results/rd_plot.png` with non-overlapping method labels.
+
+---
+
+## 📊 Benchmark Results & Visualizations
+
+### 1. Rate-Distortion Curves on Kodak (RGB)
+Ascending convex-upward curves matching the official CompressAI benchmark style:
+* Bit-rate range: $[0.0, 2.2]\text{ bpp}$
+* Quality range: $[26.0, 42.0]\text{ dB}$ (PSNR)
+* All 9 families plotted with matching colored markers and non-overlapping 2-column legend:
+
+![Rate-Distortion Performance on Kodak](results/rd_plot.png)
+
+### 2. Qualitative Visual Comparison on Kodak #23 (`kodim23.png`)
+Visual reconstructions across all methods operating in their lowest bit-rate regime (most economical mode):
+
+![Visual Reconstruction Comparison on Kodak #23](results/visual_comparison_kodim23.png)
 
 ---
 
