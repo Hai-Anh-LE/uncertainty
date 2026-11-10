@@ -1,10 +1,10 @@
 """
-plot_reconstructions.py - Generates a publication-quality visual comparison grid
-of reconstructed images on Kodak #23 (kodim23.png) across all compression methods
-at a matched bit-rate level (~0.3 bpp).
-
-Includes full images with zoomed-in inset patches showing texture/edge artifacts
-and the predictive Uncertainty map U(x).
+plot_reconstructions.py - Simple, clean visual grid comparison on Kodak #23 (kodim23.png)
+showing reconstructed images for all methods at their best evaluated quality / bit rate.
+- No zoom-in insets.
+- No uncertainty map.
+- Clean image, method name, and scores (bpp, PSNR, SSIM).
+- LaTeX Computer Modern typography.
 """
 import os
 import pathlib
@@ -13,11 +13,8 @@ from torchvision import transforms
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from compression_methods import (
-    DFTCompression, 
     DCTCompression, 
     WaveletCompression, 
     StandardCodec, 
@@ -37,25 +34,22 @@ def generate_visual_grid(img_path: pathlib.Path, out_path: pathlib.Path):
 
     img_pil = Image.open(img_path).convert("RGB")
     x = transforms.ToTensor()(img_pil).unsqueeze(0).to(DEVICE)
-    _, _, H, W = x.shape
 
-    # Define crop region around high-detail bird head (x: 100-240, y: 140-280)
-    crop_y0, crop_y1 = 140, 280
-    crop_x0, crop_x1 = 100, 240
-
-    # Compression methods configured for matched ~0.3 bpp regime
+    # All 9 methods evaluated at their best quality / bit-rate setting + Ground Truth
     methods = [
-        (r"$\mathrm{Original\ (Ground\ Truth)}$", None, None),
-        (r"$\mathrm{DFT\ (Fourier)}$", DFTCompression(keep_ratio=0.005), "k=0.5%"),
-        (r"$\mathrm{DCT\ (Block\ 8\times 8)}$", DCTCompression(quality=10), "q10"),
-        (r"$\mathrm{DWT\ (Wavelet\ db4)}$", WaveletCompression(threshold=0.15), "th0.15"),
-        (r"$\mathrm{JPEG}$", StandardCodec("JPEG", quality=20), "q20"),
-        (r"$\mathrm{JPEG\ 2000}$", StandardCodec("JPEG2000", quality=45), "q45"),
-        (r"$\mathrm{WebP}$", StandardCodec("WEBP", quality=40), "q40"),
-        (r"$\mathrm{Ball\acute{e}\ 2018\ (Factorized)}$", NeuralModel("bmshj2018_factorized", quality=4, device=DEVICE), "q4"),
-        (r"$\mathrm{Ball\acute{e}\ 2018\ (Hyperprior)}$", NeuralModel("bmshj2018_hyperprior", quality=5, device=DEVICE), "q5"),
-        (r"$\mathrm{Minnen\ 2018\ (Autoregressive)}$", NeuralModel("mbt2018_mean", quality=5, device=DEVICE), "q5"),
-        (r"$\mathrm{Cheng\ 2020\ (Attention)}$", NeuralModel("cheng2020_anchor", quality=6, device=DEVICE), "q6"),
+        # Row 1: Ground Truth + Top Neural Codecs
+        (r"$\mathrm{Original\ (Ground\ Truth)}$", None),
+        (r"$\mathrm{Cheng\ 2020\ (Attention)}$", NeuralModel("cheng2020_anchor", quality=6, device=DEVICE)),
+        (r"$\mathrm{Minnen\ 2018\ (Autoregressive)}$", NeuralModel("mbt2018_mean", quality=6, device=DEVICE)),
+        (r"$\mathrm{Ball\acute{e}\ 2018\ (Hyperprior)}$", NeuralModel("bmshj2018_hyperprior", quality=6, device=DEVICE)),
+        (r"$\mathrm{Ball\acute{e}\ 2018\ (Factorized)}$", NeuralModel("bmshj2018_factorized", quality=6, device=DEVICE)),
+        
+        # Row 2: Standard Codecs & Classical Transforms
+        (r"$\mathrm{WebP}$", StandardCodec("WEBP", quality=80)),
+        (r"$\mathrm{JPEG\ 2000}$", StandardCodec("JPEG2000", quality=25)),
+        (r"$\mathrm{JPEG}$", StandardCodec("JPEG", quality=80)),
+        (r"$\mathrm{DWT\ (Wavelet\ db4)}$", WaveletCompression(threshold=0.02)),
+        (r"$\mathrm{DCT\ (Block\ 8\times 8)}$", DCTCompression(quality=80)),
     ]
 
     # Typography settings
@@ -63,72 +57,40 @@ def generate_visual_grid(img_path: pathlib.Path, out_path: pathlib.Path):
         "font.family": "serif",
         "mathtext.fontset": "cm",
         "font.size": 10,
-        "axes.titlesize": 10.5,
+        "axes.titlesize": 11,
     })
 
-    fig, axes = plt.subplots(3, 4, figsize=(15, 10.5), dpi=300)
+    fig, axes = plt.subplots(2, 5, figsize=(16, 7.2), dpi=300)
     axes = axes.flatten()
 
     orig_np = x.squeeze(0).permute(1, 2, 0).cpu().numpy().clip(0, 1)
 
-    # Dictionary to keep last neural reconstruction for uncertainty heatmap
-    last_rec = None
-
-    for idx, (name, model, _) in enumerate(methods):
+    for idx, (name, model) in enumerate(methods):
         ax = axes[idx]
         if model is None:
-            # Ground Truth
             rec_np = orig_np
-            subtitle = r"$\mathrm{Raw\ uncompressed\ reference}$"
+            subtitle = r"$\mathrm{Reference\ Image}$"
         else:
             with torch.no_grad():
                 x_hat, bpp_val = model.compress_decompress(x)
             p_val = psnr(x, x_hat)
             s_val = ssim(x, x_hat)
             rec_np = x_hat.squeeze(0).permute(1, 2, 0).cpu().numpy().clip(0, 1)
-            last_rec = rec_np
             subtitle = rf"${bpp_val:.3f}\ \mathrm{{bpp}}\ |\ {p_val:.2f}\ \mathrm{{dB}}\ |\ \mathrm{{SSIM}}:\ {s_val:.4f}$"
 
         ax.imshow(rec_np)
-        ax.set_title(f"{name}\n{subtitle}", pad=5)
+        ax.set_title(f"{name}\n{subtitle}", pad=6)
         ax.axis("off")
 
-        # Inset zoomed patch in lower-right or lower-left corner
-        # Main patch box
-        rect = patches.Rectangle(
-            (crop_x0, crop_y0), crop_x1 - crop_x0, crop_y1 - crop_y0, 
-            linewidth=1.2, edgecolor="red", facecolor="none"
-        )
-        ax.add_patch(rect)
-
-        # Inset zoom
-        ax_ins = inset_axes(ax, width="38%", height="38%", loc="lower right", borderpad=0.4)
-        crop_np = rec_np[crop_y0:crop_y1, crop_x0:crop_x1]
-        ax_ins.imshow(crop_np)
-        ax_ins.set_xticks([])
-        ax_ins.set_yticks([])
-        for spine in ax_ins.spines.values():
-            spine.set_edgecolor("red")
-            spine.set_linewidth(1.5)
-
-    # 12th panel: Uncertainty heatmap U(x) = |X - \hat{X}|^2
-    ax_u = axes[11]
-    if last_rec is not None:
-        error_map = np.mean((orig_np - last_rec) ** 2, axis=2)
-        im = ax_u.imshow(error_map, cmap="inferno")
-        ax_u.set_title(r"$\mathrm{Predictive\ Uncertainty\ Map}\ U(x)$" + "\n" + r"$\mathbb{E}[(X - \hat{X})^2]\ \mathrm{(NeurIPS\ 2024)}$", pad=5)
-        ax_u.axis("off")
-        plt.colorbar(im, ax=ax_u, fraction=0.046, pad=0.04)
-
     plt.suptitle(
-        r"$\mathrm{Visual\ Reconstruction\ Quality\ on\ Kodak\ 23\ (Matched\ Bitrate\ Regime\ \approx 0.30\ bpp)}$", 
-        fontsize=14, y=0.99
+        r"$\mathrm{Visual\ Reconstruction\ on\ Kodak\ 23\ at\ Best\ Quality\ Setting}$", 
+        fontsize=14, y=0.98
     )
     plt.tight_layout()
     os.makedirs(out_path.parent, exist_ok=True)
     plt.savefig(out_path, bbox_inches="tight")
     plt.close()
-    print(f"[✓] Saved visual comparison grid: {out_path}")
+    print(f"[✓] Saved clean visual comparison grid: {out_path}")
 
 if __name__ == "__main__":
     generate_visual_grid(IMG_PATH, OUT_FIG)
