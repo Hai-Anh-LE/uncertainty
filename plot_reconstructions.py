@@ -35,21 +35,21 @@ def generate_visual_grid(img_path: pathlib.Path, out_path: pathlib.Path):
     img_pil = Image.open(img_path).convert("RGB")
     x = transforms.ToTensor()(img_pil).unsqueeze(0).to(DEVICE)
 
-    # All 9 methods evaluated at their best quality / bit-rate setting + Ground Truth
+    # All 9 methods evaluated at their lowest bit-rate (most economical mode) + Ground Truth
     methods = [
-        # Row 1: Ground Truth + Top Neural Codecs
+        # Row 1: Ground Truth + Neural Codecs at lowest bit-rate (q1)
         (r"$\mathrm{Original\ (Ground\ Truth)}$", None),
-        (r"$\mathrm{Cheng\ 2020\ (Attention)}$", NeuralModel("cheng2020_anchor", quality=6, device=DEVICE)),
-        (r"$\mathrm{Minnen\ 2018\ (Autoregressive)}$", NeuralModel("mbt2018_mean", quality=6, device=DEVICE)),
-        (r"$\mathrm{Ball\acute{e}\ 2018\ (Hyperprior)}$", NeuralModel("bmshj2018_hyperprior", quality=6, device=DEVICE)),
-        (r"$\mathrm{Ball\acute{e}\ 2018\ (Factorized)}$", NeuralModel("bmshj2018_factorized", quality=6, device=DEVICE)),
+        (r"$\mathrm{Cheng\ 2020\ (Attention)}$", NeuralModel("cheng2020_anchor", quality=1, device=DEVICE)),
+        (r"$\mathrm{Minnen\ 2018\ (Autoregressive)}$", NeuralModel("mbt2018_mean", quality=1, device=DEVICE)),
+        (r"$\mathrm{Ball\acute{e}\ 2018\ (Hyperprior)}$", NeuralModel("bmshj2018_hyperprior", quality=1, device=DEVICE)),
+        (r"$\mathrm{Ball\acute{e}\ 2018\ (Factorized)}$", NeuralModel("bmshj2018_factorized", quality=1, device=DEVICE)),
         
-        # Row 2: Standard Codecs & Classical Transforms
-        (r"$\mathrm{WebP}$", StandardCodec("WEBP", quality=80)),
-        (r"$\mathrm{JPEG\ 2000}$", StandardCodec("JPEG2000", quality=25)),
-        (r"$\mathrm{JPEG}$", StandardCodec("JPEG", quality=80)),
-        (r"$\mathrm{DWT\ (Wavelet\ db4)}$", WaveletCompression(threshold=0.02)),
-        (r"$\mathrm{DCT\ (Block\ 8\times 8)}$", DCTCompression(quality=80)),
+        # Row 2: Standard Codecs & Classical Transforms at lowest bit-rate
+        (r"$\mathrm{WebP}$", StandardCodec("WEBP", quality=10)),
+        (r"$\mathrm{JPEG\ 2000}$", StandardCodec("JPEG2000", quality=45)),
+        (r"$\mathrm{JPEG}$", StandardCodec("JPEG", quality=10)),
+        (r"$\mathrm{DWT\ (Wavelet\ db4)}$", WaveletCompression(threshold=0.15)),
+        (r"$\mathrm{DCT\ (Block\ 8\times 8)}$", DCTCompression(quality=10)),
     ]
 
     # Typography settings
@@ -82,10 +82,6 @@ def generate_visual_grid(img_path: pathlib.Path, out_path: pathlib.Path):
         ax.set_title(f"{name}\n{subtitle}", pad=6)
         ax.axis("off")
 
-    plt.suptitle(
-        r"$\mathrm{Visual\ Reconstruction\ on\ Kodak\ 23\ at\ Best\ Quality\ Setting}$", 
-        fontsize=14, y=0.98
-    )
     plt.tight_layout()
     os.makedirs(out_path.parent, exist_ok=True)
     plt.savefig(out_path, bbox_inches="tight")
